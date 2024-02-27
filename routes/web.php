@@ -15,13 +15,18 @@ use App\Http\Controllers\Auth\LoginController;
 */
 
 Route::get('/', function () {
-    return view('welcome');
+    return view('Auth/Homepage');
 });
 Route::controller(LoginController::class)->group(function() {
     Route::get('/register', 'register')->name('register');
     Route::get('/login', 'login')->name('login');
     Route::get('/save', 'save')->name('save');
+ 
+
     Route::post('/authenticate', 'authenticate')->name('authenticate');
     Route::get('/dashboard', 'dashboard')->name('dashboard');
     Route::post('/logout', 'logout')->name('logout');
+    Route::post('/fetch-states/{id}',[LoginController::class,'fetchStates']);
+    Route::post('/fetch-cities/{id}',[LoginController::class,'fetchCities']);
+
 });

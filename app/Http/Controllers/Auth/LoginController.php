@@ -4,8 +4,9 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Hash;
-
+use App\Mail\sendMail;
 class LoginController extends Controller
 {
     /**
@@ -25,8 +26,33 @@ class LoginController extends Controller
      */
     public function login()
     {
+
         return view('auth.login');
     }
+
+     /**
+     * fetch data state
+    */
+    public function fetchStates($country_id = null) {
+    $states = \DB::table('states')->where('country_id',$country_id)->get();
+
+    return response()->json([
+        'status' => 1,
+        'states' => $states
+    ]);
+    }
+
+    /**
+     * fetch data city
+     */
+    public function fetchCities($state_id = null) {
+        $cities = \DB::table('cities')->where('state_id',$state_id)->get();
+        return response()->json([
+            'status' => 1,
+            'cities' => $cities
+        ]);
+    }
+
     /**
      * Display a registration form.
      *
@@ -34,9 +60,10 @@ class LoginController extends Controller
      */
     public function register()
     {
-       
+        $countries = \DB::table('countries')->orderBy('name','ASC')->get();
+        $data['countries'] = $countries;
         
-        return view('auth.register');
+        return view('auth.register',$data);
     }
      /**
      * Store a new user.
@@ -46,27 +73,36 @@ class LoginController extends Controller
      */
     public function save(Request $request)
     {
-        $request->validate([
-            'name' => 'required|string|max:250',
-            'email' => 'required|email|max:250|unique:users',
-            'password' => 'required|min:8|confirmed',
-            'country'  => 'required|country|max:250'
-           
-          
-        ]);
+    $request->validate([
+        'name' => 'required|string|max:250',
+        'email' => 'required|email|max:250|unique:users',
+        'password' => 'required|min:8|confirmed',
+        'gender' => 'required|string|max:250',
+        'countries' => 'required|string|max:250',
+        'state' => 'required|string|max:250',
+        'city' => 'required|string|max:250'
 
-        User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password)
-           
-        ]);
+    ]);
 
-        $credentials = $request->only('email', 'password');
-        Auth::attempt($credentials);
-        $request->session()->regenerate();
-        return redirect()->route('dashboard')
-        ->withSuccess('You have successfully registered & logged in!');
+    User::create([
+        'name' => $request->name,
+        'email' => $request->email,
+        'gender' => $request->gender,
+        'password' => Hash::make($request->password),
+        'countries' => $request->countries,
+        'state' => $request->state,
+        'city' => $request->city,
+    ]);
+    $mailData = ['title'=> 'Registration Successful','body'=>'Thank for registering'];
+    //print_r($request->only('email'));
+    Mail::to($request->only('email'))->send(new sendMail($mailData));
+
+    
+    $credentials = $request->only('email', 'password');
+    Auth::attempt($credentials);
+    $request->session()->regenerate();
+    return redirect()->route('dashboard')
+    ->withSuccess('You have successfully registered & logged in!');
     }
 
      /**
@@ -83,7 +119,7 @@ class LoginController extends Controller
         ]);
 
         if(Auth::attempt($credentials))
-        {
+        {  
             $request->session()->regenerate();
             return redirect()->route('dashboard')
                 ->withSuccess('You have successfully logged in!');
@@ -103,6 +139,7 @@ class LoginController extends Controller
     {
         if(Auth::check())
         {
+          
             return view('auth.dashboard');
         }
         
@@ -112,7 +149,6 @@ class LoginController extends Controller
         ])->onlyInput('email');
     } 
    
-    
 
     /**
      * Log out the user from application.
@@ -129,5 +165,6 @@ class LoginController extends Controller
             ->withSuccess('You have logged out successfully!');;
     }    
  
+    
      
 }
