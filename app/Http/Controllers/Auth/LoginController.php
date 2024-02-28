@@ -35,7 +35,6 @@ class LoginController extends Controller
     */
     public function fetchStates($country_id = null) {
     $states = \DB::table('states')->where('country_id',$country_id)->get();
-
     return response()->json([
         'status' => 1,
         'states' => $states
@@ -93,9 +92,9 @@ class LoginController extends Controller
         'state' => $request->state,
         'city' => $request->city,
     ]);
-    $mailData = ['title'=> 'Registration Successful','body'=>'Thank for registering'];
-    //print_r($request->only('email'));
-    Mail::to($request->only('email'))->send(new sendMail($mailData));
+    // $mailData = ['title'=> 'Registration Successful','body'=>'Thank for registering'];    //Mail functionality closed. you can cred in .env file and uncomment this code for working
+    // //print_r($request->only('email'));
+    // Mail::to($request->only('email'))->send(new sendMail($mailData));
 
     
     $credentials = $request->only('email', 'password');
@@ -135,12 +134,16 @@ class LoginController extends Controller
      *
      * @return \Illuminate\Http\Response
      */
-    public function dashboard()
+    public function dashboard(Request $request)
     {
         if(Auth::check())
         {
-          
-            return view('auth.dashboard');
+                    $data = User::join   ('countries', 'countries.id', '=', 'users.countries')
+                    ->join('states', 'states.country_id', '=', 'countries.id')
+                    ->join('cities', 'cities.state_id', '=', 'states.id')->where('email', '=',$request->only('email'))             
+                    ->get(['countries.name']);
+                    return view('auth.dashboard', $data);
+                
         }
         
         return redirect()->route('login')
